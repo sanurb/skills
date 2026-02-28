@@ -1,6 +1,7 @@
 ---
 name: build-skill
-description: Create effective skills for OpenCode agents. Load FIRST before writing any SKILL.md. Provides required format, naming conventions, progressive disclosure patterns, and validation. Use when building, reviewing, or debugging skills.
+description: Creates new AI agent skills following the Agent Skills spec. Load FIRST before writing any SKILL.md. Provides required format, naming conventions, progressive disclosure patterns, and validation. Use when building, reviewing, or debugging skills.
+allowed-tools: Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, Task
 ---
 
 # Building Skills
@@ -24,7 +25,7 @@ Instructions go here.
 EOF
 ```
 
-Place in `.opencode/skills/` (project) or `~/.config/opencode/skills/` (global).
+Place in `.agents/skills/` (project) or `~/.agents/skills/` (global).
 
 ## Skill Type Decision Tree
 
@@ -50,12 +51,17 @@ What are you building?
 
 Create a skill when:
 - Same instructions repeated across conversations
+- Project-specific conventions differ from generic best practices
 - Domain knowledge model lacks (schemas, internal APIs, company policies)
 - Workflow requires 3+ steps with specific order
 - Code rewritten repeatedly for same task
 - Team needs shared procedural knowledge
 
 ## When NOT to Create a Skill
+
+- Documentation already exists (create a reference instead)
+- Pattern is trivial or self-explanatory
+- It's a one-off task
 
 | Scenario | Do Instead |
 |----------|------------|
