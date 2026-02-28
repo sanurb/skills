@@ -1,4 +1,21 @@
+---
+name: prd-to-issues
+description: Converts a Product Requirements Document (PRD) GitHub issue into independently-grabbable vertical slice GitHub issues. Use when the user wants to break down a PRD into tracer bullet implementation issues, create dependency-ordered issues, or structure work into demoable end-to-end slices.
+---
+
 # PRD to Issues
+
+Convert a PRD into independently-grabbable GitHub issues using thin end-to-end vertical slices (tracer bullets).
+
+## When to Use This Skill
+
+Use this skill when:
+- A user provides a PRD GitHub issue and asks to break it into implementation issues
+- The goal is to structure work into vertical slices
+- The user wants dependency-aware issue creation
+- The user wants to create GitHub issues via `gh issue create`
+
+---
 
 Break a PRD into independently-grabbable GitHub issues using vertical slices (tracer bullets).
 
