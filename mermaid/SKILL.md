@@ -1,11 +1,13 @@
 ---
 name: mermaid
-description: Mermaid diagram generation guidelines. Use when creating flowcharts, sequence diagrams, class diagrams, or other visual documentation.
+description: Proactively suggest diagrams when explaining complex systems. Triggers on diagrams, charts, visualizations, flowcharts, sequence diagrams, architecture diagrams, ER diagrams, state machines, Gantt charts, mindmaps, C4, class diagrams, git graphs. Use when user asks for visual representations of code, systems, processes, data structures, database schemas, workflows, or API flows. Generate Mermaid diagrams in markdown.
 ---
 
-# Mermaid Graph Generation
+# Mermaid
 
-## Basic Syntax
+Generate diagrams in markdown that render in GitHub, GitLab, VS Code, Obsidian, Notion.
+
+## Quick Start
 
 Use triple backticks with 'mermaid' language specifier:
 
@@ -23,75 +25,150 @@ graph TD
 - Ensure readability by using meaningful node labels
 - Use subgraphs or clusters to show hierarchical or grouped relationships
 
-## Node Shapes
+## Quick Decision Tree
 
-| Syntax | Shape |
-|--------|-------|
-| `[text]` | Rectangle |
-| `(text)` | Rounded rectangle |
-| `{text}` | Diamond (decision) |
-| `([text])` | Stadium |
-| `[[text]]` | Subroutine |
-| `[(text)]` | Cylinder (database) |
-| `((text))` | Circle |
-
-## Supported Diagram Types
-
-### Flowchart
-
-```mermaid
-graph LR
-  A[Input] --> B[Process] --> C[Output]
+```
+What to visualize?
+├─ Process, algorithm, decision flow    → flowchart
+├─ API calls, service interactions      → sequenceDiagram
+├─ Database tables, relationships       → erDiagram
+├─ OOP, type hierarchy, domain model    → classDiagram
+├─ State machine, lifecycle             → stateDiagram-v2
+├─ System architecture, services        → flowchart + subgraphs (or C4Context)
+├─ Project timeline, sprints            → gantt
+├─ User experience, pain points         → journey
+├─ Git branches                         → gitGraph
+├─ Data distribution                    → pie
+└─ Priority matrix                      → quadrantChart
 ```
 
-### Sequence Diagram
+## Diagram Types
+
+| Type | Declaration | Best For |
+|------|-------------|----------|
+| **Flowchart** | `flowchart LR/TB` | Processes, decisions, data flow |
+| **Sequence** | `sequenceDiagram` | API flows, service calls |
+| **ER** | `erDiagram` | Database schemas |
+| **Class** | `classDiagram` | Types, domain models |
+| **State** | `stateDiagram-v2` | State machines |
+| **Gantt** | `gantt` | Project timelines |
+| **Journey** | `journey` | User experience |
+| **C4** | `C4Context` | System architecture |
+| **Git** | `gitGraph` | Branch visualization |
+
+## Common Patterns
+
+### System Architecture
+
+```mermaid
+flowchart LR
+    subgraph Client
+        Browser & Mobile
+    end
+    subgraph Services
+        API --> Auth & Core
+    end
+    subgraph Data
+        DB[(PostgreSQL)]
+    end
+    Client --> API
+    Core --> DB
+```
+
+### API Request Flow
 
 ```mermaid
 sequenceDiagram
-  participant A as Client
-  participant B as Server
-  A->>B: Request
-  B-->>A: Response
+    autonumber
+    Client->>+API: POST /orders
+    API->>Auth: Validate
+    Auth-->>API: OK
+    API->>+DB: Insert
+    DB-->>-API: ID
+    API-->>-Client: 201 Created
 ```
 
-### Class Diagram
+### Database Schema
 
 ```mermaid
-classDiagram
-  class User {
-    +String name
-    +login()
-  }
+erDiagram
+    USER ||--o{ ORDER : places
+    ORDER ||--|{ LINE_ITEM : contains
+    USER { uuid id PK; string email UK }
+    ORDER { uuid id PK; uuid user_id FK }
 ```
 
-### State Diagram
+### State Machine
 
 ```mermaid
 stateDiagram-v2
-  [*] --> Idle
-  Idle --> Processing
-  Processing --> Done
-  Done --> [*]
+    [*] --> Draft
+    Draft --> Submitted : submit()
+    Submitted --> Approved : approve()
+    Submitted --> Rejected : reject()
+    Approved --> [*]
 ```
 
-## Styling
+## Syntax Quick Reference
 
-```mermaid
-graph TD
-  A[Node]:::highlight --> B[Node]
-  classDef highlight fill:#f9f,stroke:#333,stroke-width:2px
+### Flowchart Nodes
+
+```
+[Rectangle]  (Rounded)  {Diamond}  [(Database)]  [[Subroutine]]
+((Circle))   >Asymmetric]   {{Hexagon}}
 ```
 
-## Subgraphs
+### Flowchart Edges
 
-```mermaid
-graph TD
-  subgraph Frontend
-    A[React] --> B[Components]
-  end
-  subgraph Backend
-    C[API] --> D[Database]
-  end
-  B --> C
+```
+A --> B       # Arrow
+A --- B       # Line
+A -.-> B      # Dotted arrow
+A ==> B       # Thick arrow
+A -->|text| B # Labeled
 ```
 
+### Sequence Arrows
+
+```
+->>   # Solid arrow (request)
+-->>  # Dotted arrow (response)
+-x    # X end (async)
+-)    # Open arrow
+```
+
+### ER Cardinality
+
+```
+||--||   # One to one
+||--o{   # One to many
+}o--o{   # Many to many
+```
+
+## Best Practices
+
+1. **Choose the right type** — Use decision tree above
+2. **Keep focused** — One concept per diagram
+3. **Use meaningful labels** — Not just A, B, C
+4. **Direction matters** — `LR` for flows, `TB` for hierarchies
+5. **Group with subgraphs** — Organize related nodes
+
+## Reference Documentation
+
+| File | Purpose |
+|------|---------|
+| [references/FLOWCHARTS.md](references/FLOWCHARTS.md) | Nodes, edges, subgraphs, styling |
+| [references/SEQUENCE.md](references/SEQUENCE.md) | Participants, messages, activation |
+| [references/CLASS-ER.md](references/CLASS-ER.md) | Classes, ER diagrams, relationships |
+| [references/STATE-JOURNEY.md](references/STATE-JOURNEY.md) | States, user journeys |
+| [references/DATA-CHARTS.md](references/DATA-CHARTS.md) | Gantt, Pie, Timeline, Quadrant |
+| [references/ARCHITECTURE.md](references/ARCHITECTURE.md) | C4, Block, Kanban |
+| [references/CHEATSHEET.md](references/CHEATSHEET.md) | All syntax quick reference |
+
+## Resources
+
+- **Official Documentation**: https://mermaid.js.org
+- **Live Editor**: https://mermaid.live
+- **GitHub Repository**: https://github.com/mermaid-js/mermaid
+- **GitHub Markdown Support**: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams
+- **GitLab Markdown Support**: https://docs.gitlab.com/ee/user/markdown.html#diagrams-and-flowcharts
