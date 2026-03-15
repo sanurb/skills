@@ -20,10 +20,9 @@ Think through problems before writing code.
 Analyze and improve codebase structure.
 
 - **[improve-codebase-architecture](improve-codebase-architecture/)** — End-to-end orchestrator: index code → explore for friction → design module-deepening refactors as GitHub issue RFCs.
-- **[index-codebase](index-codebase/)** — Index a codebase with [codemogger](https://github.com/nicholasgriffintn/codemogger) (semantic + keyword search) and optionally [zoekt](https://github.com/sourcegraph/zoekt) (trigram regex search).
+- **[index-codebase](index-codebase/)** — Index a codebase with [codemogger](https://github.com/glommer/codemogger/) (semantic + keyword search) and optionally [zoekt](https://github.com/sourcegraph/zoekt) (trigram regex search).
 - **[explore-architecture](explore-architecture/)** — Search an indexed codebase to find architectural friction and surface module-deepening candidates.
 - **[design-deep-module](design-deep-module/)** — Design multiple interface options for a deepening candidate and create a refactor RFC as a GitHub issue.
-- **[clean-ddd-hexagonal](clean-ddd-hexagonal/)** — Clean Architecture + DDD + Hexagonal patterns for backend services. Language-agnostic.
 - **[feature-slicing](feature-slicing/)** — Feature-Sliced Design (FSD) architecture for frontend projects.
 
 ## Development

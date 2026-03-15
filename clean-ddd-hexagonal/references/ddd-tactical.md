@@ -1,33 +1,15 @@
 # DDD Tactical Patterns
 
-> Sources:
-> - [Domain-Driven Design: The Blue Book](https://www.domainlanguage.com/ddd/blue-book/) — Eric Evans (2003)
-> - [Implementing Domain-Driven Design](https://openlibrary.org/works/OL17392277W) — Vaughn Vernon (2013)
-> - [Effective Aggregate Design](https://www.dddcommunity.org/library/vernon_2011/) — Vaughn Vernon
-> - [Repository Pattern](https://martinfowler.com/eaaCatalog/repository.html) — Martin Fowler (PoEAA)
-
 ## Building Blocks Overview
 
-```mermaid
-flowchart TB
-    subgraph Aggregate["Aggregate"]
-        subgraph AggRoot["Aggregate Root (Entity)"]
-            E1["Entity"]
-            E2["Entity"]
-            VO1["Value Object"]
-            VO2["Value Object"]
-            DE["Domain Event"]
-        end
-    end
-
-    Aggregate -->|Repository| Persistence[("Persistence")]
-
-    style Aggregate fill:#3b82f6,stroke:#2563eb,color:white
-    style AggRoot fill:#10b981,stroke:#059669,color:white
-    style Persistence fill:#6b7280,stroke:#4b5563,color:white
 ```
-
----
+Aggregate
+└── Aggregate Root (Entity)
+    ├── Entity, Entity
+    ├── Value Object, Value Object
+    └── Domain Event
+Aggregate → Repository → Persistence
+```
 
 ## Entity
 
@@ -173,46 +155,15 @@ A cluster of entities and value objects treated as a single unit for data change
 
 ### Design Guidelines
 
-**Good: Small Aggregates**
+**Good:** Small aggregates that reference other aggregates by ID only.
 
-```mermaid
-flowchart LR
-    subgraph Order["Order Aggregate"]
-        O["Order"]
-        OI["OrderItems (embedded)"]
-    end
-    subgraph Customer["Customer Aggregate"]
-        C["Customer (standalone)"]
-    end
-    subgraph Product["Product Aggregate"]
-        P["Product (standalone)"]
-    end
-
-    Order -.->|customerId| Customer
-    Order -.->|productId| Product
-
-    style Order fill:#10b981,stroke:#059669,color:white
-    style Customer fill:#3b82f6,stroke:#2563eb,color:white
-    style Product fill:#3b82f6,stroke:#2563eb,color:white
+```
+Order Aggregate: Order + OrderItems (embedded)
+Customer Aggregate: Customer (standalone)  ← referenced by customerId
+Product Aggregate: Product (standalone)    ← referenced by productId
 ```
 
-*Reference by ID only*
-
-**Bad: God Aggregate**
-
-```mermaid
-flowchart TB
-    subgraph GodOrder["Order (God Aggregate)"]
-        O2["Order"]
-        C2["Customer (embedded)"]
-        P2["Products (embedded)"]
-        SA["ShippingAddress (embedded)"]
-    end
-
-    style GodOrder fill:#ef4444,stroke:#dc2626,color:white
-```
-
-*Too large, too many reasons to change, contention issues*
+**Bad:** God aggregate embedding Customer, Products, ShippingAddress — too many reasons to change, contention issues.
 
 ### Pattern
 

@@ -1,169 +1,98 @@
 ---
 name: clean-ddd-hexagonal
-description: Proactively apply when designing APIs, microservices, or scalable backend structure. Triggers on DDD, Clean Architecture, Hexagonal, ports and adapters, entities, value objects, domain events, CQRS, event sourcing, repository pattern, use cases, onion architecture, outbox pattern, aggregate root, anti-corruption layer. Use when working with domain models, aggregates, repositories, or bounded contexts. Clean Architecture + DDD + Hexagonal patterns for backend services, language-agnostic (Go, Rust, Python, TypeScript, Java, C#).
+description: Apply boundary-driven architecture (Clean/Hexagonal/Ports-Adapters) with optional DDD tactical patterns for backend services. Separates domain logic from infrastructure through explicit boundaries. Adapts adoption depth to context — full hexagonal, partial boundaries, or principles-only. Use when domain complexity, testability needs, or infrastructure flexibility justifies the cost. Do NOT use for simple CRUD, prototypes, scripts, or frontend code. Not all modules in a system need the same architecture depth.
 ---
 
-# Clean Architecture + DDD + Hexagonal
+# Boundary-Driven Architecture
 
-Backend architecture combining DDD tactical patterns, Clean Architecture dependency rules, and Hexagonal ports/adapters for maintainable, testable systems.
+Apply architecture boundaries that separate domain logic from infrastructure. The depth of adoption (full hexagonal, partial, or principles-only) depends on context — read [decision-guide.md](references/decision-guide.md).
 
-## When to Use (and When NOT to)
+**This is not doctrine.** There is no single canonical folder structure, naming scheme, or pattern set that fits all codebases. Consistency within a repo matters more than ideological purity. Partial adoption is valid. Architecture serves the domain, team, and delivery constraints — not the other way around.
 
-| Use When | Skip When |
-|----------|-----------|
-| Complex business domain with many rules | Simple CRUD, few business rules |
-| Long-lived system (years of maintenance) | Prototype, MVP, throwaway code |
-| Team of 5+ developers | Solo developer or small team (1-2) |
-| Multiple entry points (API, CLI, events) | Single entry point, simple API |
-| Need to swap infrastructure (DB, broker) | Fixed infrastructure, unlikely to change |
-| High test coverage required | Quick scripts, internal tools |
+## Instructions
 
-**Start simple. Evolve complexity only when needed.** Most systems don't need full CQRS or Event Sourcing.
+### Step 1. Assess context and determine adoption level
 
-## CRITICAL: The Dependency Rule
+Before writing code, determine how deeply to apply architectural boundaries:
 
-Dependencies point **inward only**. Outer layers depend on inner layers, never the reverse.
+| Context | Adoption level |
+|---------|---------------|
+| Complex domain, many business rules, long-lived system | Full: hexagonal boundaries + DDD tactical patterns |
+| Moderate domain, multiple entry points or infra swap needs | Partial: boundary interfaces for key infrastructure, domain logic separated |
+| Simple CRUD, few rules, one entry point | Principles-only: keep domain logic free of framework imports |
+| Prototype, MVP, throwaway | Skip: direct framework usage, evolve later |
 
-```
-Infrastructure → Application → Domain
-   (adapters)     (use cases)    (core)
-```
+Match the repo's existing conventions. If the codebase already has a structure, follow it rather than imposing a new one. Read [decision-guide.md](references/decision-guide.md) for the full adaptation matrix.
 
-**Violations to catch:**
-- Domain importing database/HTTP libraries
-- Controllers calling repositories directly (bypassing use cases)
-- Entities depending on application services
+### Step 2. Apply boundaries at the appropriate granularity
 
-**Design validation:** "Create your application to work without either a UI or a database" — Alistair Cockburn. If you can run your domain logic from tests with no infrastructure, your boundaries are correct.
-
-## Quick Decision Trees
-
-### "Where does this code go?"
+Route code based on the dependency rule: **domain logic must not depend on infrastructure.**
 
 ```
 Where does it go?
-├─ Pure business logic, no I/O           → domain/
-├─ Orchestrates domain + has side effects → application/
-├─ Talks to external systems              → infrastructure/
-├─ Defines HOW to interact (interface)    → port (domain or application)
-└─ Implements a port                      → adapter (infrastructure)
+├─ Pure business logic, no I/O?              → domain boundary (inner)
+├─ Orchestrates domain + coordinates I/O?    → application boundary (middle)
+├─ Talks to external systems (DB, APIs)?     → infrastructure boundary (outer)
+├─ Defines a capability contract?            → port (interface, in domain or app)
+└─ Implements a port concretely?             → adapter (in infrastructure)
 ```
 
-### "Is this an Entity or Value Object?"
+For DDD tactical patterns (entities, value objects, aggregates), read [ddd-tactical.md](references/ddd-tactical.md). These are **optional patterns for complex domains** — not mandatory in every module.
+
+For the invariants/conventions distinction, read [principles-vs-conventions.md](references/principles-vs-conventions.md).
+
+### Step 3. Validate the dependency rule
+
+The only structural rule that must universally hold:
 
 ```
-Entity or Value Object?
-├─ Has unique identity that persists → Entity
-├─ Defined only by its attributes    → Value Object
-├─ "Is this THE same thing?"         → Entity (identity comparison)
-└─ "Does this have the same value?"  → Value Object (structural equality)
+Infrastructure → Application → Domain
+   (outer)         (middle)      (inner)
 ```
 
-### "Should this be its own Aggregate?"
+Inner layers never import from outer layers. The enforcement mechanism varies:
 
-```
-Aggregate boundaries?
-├─ Must be consistent together in a transaction → Same aggregate
-├─ Can be eventually consistent                 → Separate aggregates
-├─ Referenced by ID only                        → Separate aggregates
-└─ >10 entities in aggregate                    → Split it
-```
+| Mechanism | When to use |
+|-----------|-------------|
+| Interfaces/traits | Multiple adapters exist or are expected |
+| Module/package visibility | Language-level enforcement (Go `internal/`, Rust `pub(crate)`) |
+| Convention + code review | Smaller teams, simpler domains |
+| Architecture tests (ts-arch, ArchUnit) | Automated CI enforcement for larger codebases |
 
-**Rule:** One aggregate per transaction. Cross-aggregate consistency via domain events (eventual consistency).
+**Design test:** "Can I test my domain logic without starting a database, HTTP server, or message broker?" If yes, the boundary holds.
 
-## Directory Structure
+## Non-Negotiable (Architectural Invariants)
 
-```
-src/
-├── domain/                    # Core business logic (NO external dependencies)
-│   ├── {aggregate}/
-│   │   ├── entity              # Aggregate root + child entities
-│   │   ├── value_objects       # Immutable value types
-│   │   ├── events              # Domain events
-│   │   ├── repository          # Repository interface (DRIVEN PORT)
-│   │   └── services            # Domain services (stateless logic)
-│   └── shared/
-│       └── errors              # Domain errors
-├── application/               # Use cases / Application services
-│   ├── {use-case}/
-│   │   ├── command             # Command/Query DTOs
-│   │   ├── handler             # Use case implementation
-│   │   └── port                # Driver port interface
-│   └── shared/
-│       └── unit_of_work        # Transaction abstraction
-├── infrastructure/            # Adapters (external concerns)
-│   ├── persistence/           # Database adapters
-│   ├── messaging/             # Message broker adapters
-│   ├── http/                  # REST/GraphQL adapters (DRIVER)
-│   └── config/
-│       └── di                  # Dependency injection / composition root
-└── main                        # Bootstrap / entry point
-```
+These are the actual principles. Everything else is convention — see [principles-vs-conventions.md](references/principles-vs-conventions.md).
 
-## DDD Building Blocks
+- **Dependency direction is inward.** Domain does not import infrastructure. Violations here are structural defects, not style issues.
+- **Domain logic is testable without infrastructure.** If you need a running database to test a business rule, the boundary is broken.
+- **Boundaries are explicit.** The contract between inner and outer is intentional — through interfaces, module visibility, or explicit convention.
 
-| Pattern | Purpose | Layer | Key Rule |
-|---------|---------|-------|----------|
-| **Entity** | Identity + behavior | Domain | Equality by ID |
-| **Value Object** | Immutable data | Domain | Equality by value, no setters |
-| **Aggregate** | Consistency boundary | Domain | Only root is referenced externally |
-| **Domain Event** | Record of change | Domain | Past tense naming (`OrderPlaced`) |
-| **Repository** | Persistence abstraction | Domain (port) | Per aggregate, not per table |
-| **Domain Service** | Stateless logic | Domain | When logic doesn't fit an entity |
-| **Application Service** | Orchestration | Application | Coordinates domain + infra |
+## Not Prescriptive (Valid Conventions That Vary)
 
-## Anti-Patterns (CRITICAL)
+These are common patterns, not universal requirements:
 
-| Anti-Pattern | Problem | Fix |
-|--------------|---------|-----|
-| **Anemic Domain Model** | Entities are data bags, logic in services | Move behavior INTO entities |
-| **Repository per Entity** | Breaks aggregate boundaries | One repository per AGGREGATE |
-| **Leaking Infrastructure** | Domain imports DB/HTTP libs | Domain has ZERO external deps |
-| **God Aggregate** | Too many entities, slow transactions | Split into smaller aggregates |
-| **Skipping Ports** | Controllers → Repositories directly | Always go through application layer |
-| **CRUD Thinking** | Modeling data, not behavior | Model business operations |
-| **Premature CQRS** | Adding complexity before needed | Start with simple read/write, evolve |
-| **Cross-Aggregate TX** | Multiple aggregates in one transaction | Use domain events for consistency |
+- Folder names (`domain/`, `core/`, `internal/`, `model/`)
+- Whether to use DDD tactical patterns or plain models
+- CQRS, event sourcing, or simple read/write
+- Repository-per-aggregate vs pragmatic repository design
+- DI style (constructor injection, framework, manual wiring)
+- Whether adapters live in a separate tree or next to ports
 
-## Implementation Order
+## Output
 
-1. **Discover the Domain** — Event Storming, conversations with domain experts
-2. **Model the Domain** — Entities, value objects, aggregates (no infra)
-3. **Define Ports** — Repository interfaces, external service interfaces
-4. **Implement Use Cases** — Application services coordinating domain
-5. **Add Adapters last** — HTTP, database, messaging implementations
+Created/modified files placed according to the dependency rule, using the repo's existing conventions for naming and structure.
 
-**DDD is collaborative.** Modeling sessions with domain experts are as important as the code patterns.
+## References
 
-## Reference Documentation
-
-| File | Purpose |
-|------|---------|
-| [references/layers.md](references/layers.md) | Complete layer specifications |
-| [references/ddd-strategic.md](references/ddd-strategic.md) | Bounded contexts, context mapping |
-| [references/ddd-tactical.md](references/ddd-tactical.md) | Entities, value objects, aggregates (pseudocode) |
-| [references/hexagonal.md](references/hexagonal.md) | Ports, adapters, naming |
-| [references/cqrs-events.md](references/cqrs-events.md) | Command/query separation, events |
-| [references/testing.md](references/testing.md) | Unit, integration, architecture tests |
-| [references/cheatsheet.md](references/cheatsheet.md) | Quick decision guide |
-
-## Sources
-
-### Primary Sources
-- [The Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html) — Robert C. Martin (2012)
-- [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture/) — Alistair Cockburn (2005)
-- [Domain-Driven Design: The Blue Book](https://www.domainlanguage.com/ddd/blue-book/) — Eric Evans (2003)
-- [Implementing Domain-Driven Design](https://openlibrary.org/works/OL17392277W) — Vaughn Vernon (2013)
-
-### Pattern References
-- [CQRS](https://martinfowler.com/bliki/CQRS.html) — Martin Fowler
-- [Event Sourcing](https://martinfowler.com/eaaDev/EventSourcing.html) — Martin Fowler
-- [Repository Pattern](https://martinfowler.com/eaaCatalog/repository.html) — Martin Fowler (PoEAA)
-- [Unit of Work](https://martinfowler.com/eaaCatalog/unitOfWork.html) — Martin Fowler (PoEAA)
-- [Bounded Context](https://martinfowler.com/bliki/BoundedContext.html) — Martin Fowler
-- [Transactional Outbox](https://microservices.io/patterns/data/transactional-outbox.html) — microservices.io
-- [Effective Aggregate Design](https://www.dddcommunity.org/library/vernon_2011/) — Vaughn Vernon
-
-### Implementation Guides
-- [Microsoft: DDD + CQRS Microservices](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/)
-- [Domain Events](https://udidahan.com/2009/06/14/domain-events-salvation/) — Udi Dahan
+| File | When to read |
+|------|-------------|
+| [principles-vs-conventions.md](references/principles-vs-conventions.md) | Step 2 — what must hold vs what may vary |
+| [decision-guide.md](references/decision-guide.md) | Step 1 — adoption levels, adaptation matrix, anti-dogma safeguards |
+| [layers.md](references/layers.md) | One common layer layout with code examples (not the only valid layout) |
+| [ddd-tactical.md](references/ddd-tactical.md) | Entity, value object, aggregate patterns for complex domains |
+| [ddd-strategic.md](references/ddd-strategic.md) | Bounded contexts, context mapping, subdomains |
+| [hexagonal.md](references/hexagonal.md) | Ports and adapters patterns, naming variants |
+| [cqrs-events.md](references/cqrs-events.md) | Command/query separation, domain events, outbox |
+| [testing.md](references/testing.md) | Unit, integration, architecture test patterns |

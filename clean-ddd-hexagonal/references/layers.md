@@ -1,9 +1,6 @@
-# Layer Structure - Complete Reference
+# Layer Structure
 
-> Sources:
-> - [The Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html) — Robert C. Martin
-> - [Designing a DDD-oriented Microservice](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice) — Microsoft
-> - [Clean Architecture: Standing on the Shoulders of Giants](https://herbertograca.com/2017/09/28/clean-architecture-standing-on-the-shoulders-of-giants/) — Herberto Graça
+**Note:** This shows ONE common layout. It is not the only valid structure. Repos may use different names (`core/` vs `domain/`, `adapters/` vs `infrastructure/`), different granularity, or different boundaries. Match your repo's conventions — see [principles-vs-conventions.md](principles-vs-conventions.md) for what must hold vs what may vary.
 
 ## The Four Layers
 
@@ -393,40 +390,13 @@ export class OrderController {
 
 ## Dependency Flow
 
-```mermaid
-flowchart TB
-    subgraph Presentation["Presentation"]
-        REST["REST Controller"]
-    end
+```
+REST Controller → PlaceOrderHandler → Order (Aggregate Root)
+                  (implements IPlaceOrderUseCase port)
+                  (uses IOrderRepository port)
 
-    subgraph Application["Application"]
-        Handler["PlaceOrderHandler"]
-        Port1["IPlaceOrderUseCase (port)"]
-        Port2["IOrderRepository"]
-        Handler -.->|implements| Port1
-        Handler -->|uses| Port2
-    end
-
-    subgraph Domain["Domain"]
-        Aggregate["Order (Aggregate Root)"]
-        RepoInterface["IOrderRepository (interface)"]
-    end
-
-    subgraph Infrastructure["Infrastructure"]
-        PgRepo["PostgresOrderRepository"]
-        RabbitMQ["RabbitMQEventPublisher"]
-        PgRepo -.->|implements| RepoInterface
-        RabbitMQ -.->|implements| EventPub["IEventPublisher"]
-    end
-
-    REST -->|calls| Handler
-    Application -->|defines interfaces| Domain
-    Infrastructure -->|implements| Domain
-
-    style Presentation fill:#f59e0b,stroke:#d97706,color:white
-    style Application fill:#3b82f6,stroke:#2563eb,color:white
-    style Domain fill:#10b981,stroke:#059669,color:white
-    style Infrastructure fill:#6366f1,stroke:#4f46e5,color:white
+PostgresOrderRepository implements IOrderRepository (domain)
+RabbitMQEventPublisher  implements IEventPublisher  (domain)
 ```
 
 ---

@@ -1,54 +1,14 @@
 # CQRS & Domain Events
 
-> Sources:
-> - [CQRS](https://martinfowler.com/bliki/CQRS.html) — Martin Fowler
-> - [Event Sourcing](https://martinfowler.com/eaaDev/EventSourcing.html) — Martin Fowler
-> - [CQRS Pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs) — Microsoft Azure
-> - [Transactional Outbox](https://microservices.io/patterns/data/transactional-outbox.html) — microservices.io
-> - [Domain Events – Salvation](https://udidahan.com/2009/06/14/domain-events-salvation/) — Udi Dahan
-> - [Strengthening Your Domain: Domain Events](https://lostechies.com/jimmybogard/2010/04/08/strengthening-your-domain-domain-events/) — Jimmy Bogard
-> - [Domain Events: Design and Implementation](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-events-design-implementation) — Microsoft
-
 ## CQRS Overview
 
 **Command Query Responsibility Segregation** separates read and write operations into different models.
 
-```mermaid
-flowchart TB
-    API["API Layer"]
-
-    API --> Commands
-    API --> Queries
-
-    subgraph WriteSide["Write Side"]
-        Commands["Commands"]
-        CmdHandler["Command Handler\n(Use Case)"]
-        DomainModel["Domain Model\n(Aggregates)"]
-        WriteDB[("Write Database")]
-
-        Commands --> CmdHandler
-        CmdHandler --> DomainModel
-        DomainModel --> WriteDB
-    end
-
-    subgraph ReadSide["Read Side"]
-        Queries["Queries"]
-        QryHandler["Query Handler\n(Read Model)"]
-        ReadDB[("Read Database\n(Optimized)")]
-
-        Queries --> QryHandler
-        QryHandler --> ReadDB
-    end
-
-    WriteDB -->|Domain Events| EventHandler["Event Handler"]
-    EventHandler -->|Updates| ReadDB
-
-    style WriteSide fill:#3b82f6,stroke:#2563eb,color:white
-    style ReadSide fill:#10b981,stroke:#059669,color:white
-    style EventHandler fill:#f59e0b,stroke:#d97706,color:white
 ```
-
----
+API → Commands → Command Handler → Domain Model → Write DB
+API → Queries  → Query Handler   → Read DB (optimized)
+Write DB → Domain Events → Event Handler → Read DB
+```
 
 ## Commands vs Queries
 
@@ -339,78 +299,25 @@ class OrderItemQuantityIncreased extends DomainEvent {
 ### Integration Events
 
 - Cross bounded context boundaries
-- Coarser-grained
-- Published to message broker
-- Versioned schema
+- Coarser-grained, published to message broker
+- Versioned schema (`eventType`, `version`, `occurredAt`, `payload`)
 
 ```typescript
-interface OrderConfirmedIntegrationEvent {
-  eventType: 'sales.order.confirmed';
-  eventId: string;
-  version: '1.0';
-  occurredAt: string;
-  payload: {
-    orderId: string;
-    customerId: string;
-    total: { amount: number; currency: string };
-    items: Array<{
-      productId: string;
-      quantity: number;
-      unitPrice: number;
-    }>;
-    shippingAddress: {
-      street: string;
-      city: string;
-      postalCode: string;
-      country: string;
-    };
-  };
-}
-```
-
-### Publishing Integration Events
-
-```typescript
-// application/event_handlers/publish_integration_events.ts
-export class PublishOrderConfirmedIntegrationEvent {
-  constructor(
-    private readonly messageBroker: IMessageBroker,
-    private readonly orderRepo: IOrderRepository,
-  ) {}
+// Map domain event → integration event → publish to broker
+class PublishOrderConfirmedIntegrationEvent {
+  constructor(private broker: IMessageBroker, private orderRepo: IOrderRepository) {}
 
   async handle(domainEvent: OrderConfirmed): Promise<void> {
     const order = await this.orderRepo.findById(domainEvent.orderId);
     if (!order) return;
 
-    const integrationEvent: OrderConfirmedIntegrationEvent = {
+    await this.broker.publish('order-events', {
       eventType: 'sales.order.confirmed',
       eventId: crypto.randomUUID(),
       version: '1.0',
       occurredAt: new Date().toISOString(),
-      payload: {
-        orderId: order.id.value,
-        customerId: order.customerId.value,
-        total: {
-          amount: order.total.amount,
-          currency: order.total.currency,
-        },
-        items: order.items.map(item => ({
-          productId: item.productId.value,
-          quantity: item.quantity.value,
-          unitPrice: item.unitPrice.amount,
-        })),
-        shippingAddress: order.shippingAddress
-          ? {
-              street: order.shippingAddress.street,
-              city: order.shippingAddress.city,
-              postalCode: order.shippingAddress.postalCode,
-              country: order.shippingAddress.country,
-            }
-          : null,
-      },
-    };
-
-    await this.messageBroker.publish('order-events', integrationEvent);
+      payload: { orderId: order.id.value, customerId: order.customerId.value, total: order.total },
+    });
   }
 }
 ```
@@ -420,40 +327,23 @@ export class PublishOrderConfirmedIntegrationEvent {
 ## Event Dispatcher Pattern
 
 ```typescript
-// infrastructure/events/event_dispatcher.ts
-export interface IEventHandler<T extends DomainEvent> {
-  handle(event: T): Promise<void>;
-}
-
-export class EventDispatcher {
+class EventDispatcher {
   private handlers: Map<string, IEventHandler<any>[]> = new Map();
 
-  register<T extends DomainEvent>(
-    eventType: string,
-    handler: IEventHandler<T>,
-  ): void {
+  register<T extends DomainEvent>(eventType: string, handler: IEventHandler<T>): void {
     const existing = this.handlers.get(eventType) ?? [];
-    existing.push(handler);
-    this.handlers.set(eventType, existing);
+    this.handlers.set(eventType, [...existing, handler]);
   }
 
   async dispatch(event: DomainEvent): Promise<void> {
     const handlers = this.handlers.get(event.eventType) ?? [];
     await Promise.all(handlers.map(h => h.handle(event)));
   }
-
-  async dispatchAll(events: DomainEvent[]): Promise<void> {
-    for (const event of events) {
-      await this.dispatch(event);
-    }
-  }
 }
 
-const dispatcher = new EventDispatcher();
-dispatcher.register('order.created', new OrderCreatedHandler(readDb));
+// Registration
 dispatcher.register('order.confirmed', new OrderConfirmedHandler(readDb));
 dispatcher.register('order.confirmed', new PublishOrderConfirmedIntegrationEvent(broker, orderRepo));
-dispatcher.register('order.shipped', new SendShippingNotificationHandler(orderRepo, notifier));
 ```
 
 ---
@@ -470,56 +360,23 @@ interface OutboxMessage:
     createdAt: DateTime
     processedAt: DateTime | null
 
-class OutboxRepository:
-    db: Database
-
-    save(event: DomainEvent, tx: Transaction):
-        tx.outbox.insert({
-            id: event.eventId,
-            eventType: event.eventType,
-            payload: serialize(event.toPayload()),
-            createdAt: event.occurredAt
-        })
-
-    getUnprocessed(limit: int = 100) -> List<OutboxMessage>:
-        return db.outbox
-            .where(processedAt: null)
-            .orderBy("createdAt")
-            .limit(limit)
-            .lockForUpdate()
-
-    markProcessed(id: string):
-        db.outbox.where(id: id).update({processedAt: now()})
-
+// In the same transaction: save aggregate + write events to outbox table
 class PlaceOrderHandler:
-    orderRepo: IOrderRepository
-    outbox: OutboxRepository
-    db: Database
-
-    handle(command: PlaceOrderCommand) -> OrderId:
-        order = Order.create(CustomerId.from(command.customerId))
-
+    handle(command) -> OrderId:
+        order = Order.create(...)
         db.transaction((tx) => {
             orderRepo.save(order, tx)
             for event in order.domainEvents:
-                outbox.save(event, tx)
+                outbox.save(event, tx)     // same TX guarantees delivery
         })
-
         return order.id
 
+// Separate process polls outbox, publishes to broker, marks processed
 class OutboxProcessor:
-    outbox: OutboxRepository
-    messageBroker: IMessageBroker
-
     process():
-        messages = outbox.getUnprocessed()
-
-        for message in messages:
-            try:
-                messageBroker.publish(message.eventType, message.payload)
-                outbox.markProcessed(message.id)
-            catch error:
-                log.error("Failed to process outbox message", message.id)
+        for message in outbox.getUnprocessed():
+            messageBroker.publish(message.eventType, message.payload)
+            outbox.markProcessed(message.id)
 ```
 
 ---
