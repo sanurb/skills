@@ -1,6 +1,6 @@
 # Benchmark Loop
 
-**One job:** Produce a with/without-skill measurement matrix across models or agents.
+Produce a with/without-skill measurement matrix across models or agents.
 
 ## Steps
 

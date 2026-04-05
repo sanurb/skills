@@ -1,6 +1,6 @@
 # Out-of-Scope Knowledge Base
 
-**One job:** Maintain `.out-of-scope/` as institutional memory for rejected feature requests.
+Maintain `.out-of-scope/` as institutional memory for rejected feature requests.
 
 ## Purpose
 

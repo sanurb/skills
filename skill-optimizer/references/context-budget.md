@@ -1,6 +1,6 @@
 # Context Budget Optimization
 
-**One job:** Shrink skill token cost without losing behavior.
+Shrink skill token cost without losing behavior.
 
 ## Steps
 

@@ -1,6 +1,6 @@
 # Activation Design
 
-**One job:** Fix skill text so models actually follow the instructions.
+Fix skill text so models actually follow the instructions.
 
 ## Steps
 

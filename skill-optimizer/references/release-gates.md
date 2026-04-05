@@ -1,6 +1,6 @@
 # Release Gates
 
-**One job:** Go/no-go decision before shipping a skill update.
+Go/no-go decision before shipping a skill update.
 
 ## Steps
 

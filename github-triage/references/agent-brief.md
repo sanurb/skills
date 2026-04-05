@@ -1,6 +1,6 @@
 # Writing Agent Briefs
 
-**One job:** Write a structured comment on a GitHub issue that an AFK agent can work from without asking questions.
+Write a structured comment on a GitHub issue that an AFK agent can work from without asking questions.
 
 ## Principles
 

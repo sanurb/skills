@@ -1,6 +1,6 @@
 # Regression Triage
 
-**One job:** Isolate and eliminate negative deltas (skill-on < skill-off).
+Isolate and eliminate negative deltas (skill-on < skill-off).
 
 ## Steps
 

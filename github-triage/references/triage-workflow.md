@@ -1,6 +1,6 @@
 # Triage Workflow
 
-**One job:** Take a single issue from unexamined to a resolved state with maintainer approval.
+Take a single issue from unexamined to a resolved state with maintainer approval.
 
 ## Step 1: Gather Context
 
