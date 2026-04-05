@@ -1,11 +1,14 @@
 ---
 name: prd-draft
-description: Assemble a PRD from the problem brief and decision ledger, run quality gates, and publish as a GitHub issue. Use when drafting or publishing a PRD, or when user says "draft the PRD", "write it up", "publish the PRD". Use after prd-interview. Reads artifacts from prd-discover and prd-interview.
+description: "Continuation skill: assemble a PRD from validated artifacts, run quality gates, and publish. Runs after prd-interview when both problem-brief.md and decision-ledger.md exist. Not for writing PRDs from scratch."
+user-invocable: false
 ---
 
 # PRD Draft
 
-Assemble the PRD from validated artifacts, gate it for quality, and ship it. No creative writing. Every section is filled from the problem brief and decision ledger — if a section is empty, the upstream interview missed something.
+Assemble the PRD from validated artifacts, gate it for quality, and ship it. Every section is filled from the problem brief and decision ledger — if a section is empty, the upstream interview missed something.
+
+> **Activation guard:** This is a continuation skill. Only run when both `/tmp/prd-{name}/problem-brief.md` and `/tmp/prd-{name}/decision-ledger.md` exist from prior pipeline runs. Do not activate independently.
 
 ## Step 1: Assemble the PRD
 
@@ -15,7 +18,7 @@ Read both artifacts:
 
 If either is missing, stop. Tell the user which upstream skill to run first.
 
-Fill the template from [prd-template.md](./references/prd-template.md) by mapping:
+Fill the template from [references/prd-template.md](references/prd-template.md) by mapping:
 
 | Template Section | Source |
 |-----------------|--------|
@@ -24,7 +27,7 @@ Fill the template from [prd-template.md](./references/prd-template.md) by mappin
 | User Stories | Synthesize from problem brief + B2 + B3 |
 | Solution Approach + Key Decisions | Decision ledger → B3 |
 | Modules | Decision ledger → B7 |
-| Acceptance Criteria | Decision ledger → B5 (edge cases) + B1 (metrics) |
+| Acceptance Criteria | Decision ledger → B5 + B1 |
 | Non-Functional Requirements | Decision ledger → B6 |
 | Scope / Non-Goals | Decision ledger → B2 |
 | Assumptions & Risks | Decision ledger → Assumptions + Deferred |
@@ -39,38 +42,28 @@ Fill the template from [prd-template.md](./references/prd-template.md) by mappin
 | Startup / early-stage | Keep only: Problem, Metrics, User Stories, Approach, Scope, Open Questions |
 | Scale-up | Full template |
 | Enterprise / regulated | Full + add compliance traceability |
-| API / platform | Full + add Interface Contract section (endpoints, schemas, versioning) |
-| AI / agent product | Full + add Eval Framework, Guardrails, Model Dependency sections |
+| API / platform | Full + add Interface Contract section |
+| AI / agent product | Full + add Eval Framework, Guardrails sections |
 
 ## Step 2: Run Quality Gates
 
-Execute every check from [quality-gates.md](./references/quality-gates.md) against the draft.
-
-**Blockers (must fix before publish):**
-- Opens with features instead of problem → rewrite opening
-- Success metric fails vanity test → revise with user
-- Zero non-goals → go back and ask user
-- Solution prescribed as requirement → rewrite as outcome
-- Unresolved open question that blocks implementation → assign owner + deadline
-- NFR uses adjective without number → quantify or remove
-
-**Warnings (flag to user, publish if accepted):**
-- Fewer than 3 edge cases
-- Assumptions not explicitly labeled
-- No rollout plan
-- No considered-but-rejected alternatives
+Execute every check from [references/quality-gates.md](references/quality-gates.md) against the draft.
 
 Present the draft to the user with gate results. Ask: *"Does this capture our shared understanding? Anything missing, wrong, or over-specified?"*
 
-Iterate until user approves.
+Iterate until the user approves.
 
-## Step 3: Publish as GitHub Issue
+## Step 3: Publish
 
-Execute: `gh issue create --title "{Feature Name} — PRD" --body-file /tmp/prd-{name}/prd-draft.md`
+Write the draft to `/tmp/prd-{name}/prd-draft.md`.
 
-After creation, tell the user:
-- The issue URL
-- "Run `prd-to-issues` to break this into vertical slice implementation issues"
+If the user wants a GitHub issue, execute:
+
+```bash
+gh issue create --title "{Feature Name} — PRD" --body-file /tmp/prd-{name}/prd-draft.md
+```
+
+After creation, tell the user the issue URL and suggest: "Run `prd-to-issues` to break this into vertical slice implementation issues."
 
 ## Non-Negotiable Acceptance Criteria
 
@@ -79,16 +72,15 @@ The PRD is NOT ready to publish unless ALL of these are true:
 - [ ] First section is the problem statement — not a feature description
 - [ ] Every requirement traces to a user problem from the problem brief
 - [ ] Every success metric is falsifiable — a post-launch data pull determines pass/fail
-- [ ] At least 2 non-goals are stated explicitly
-- [ ] At least 3 edge cases or failure scenarios have acceptance criteria
+- [ ] At least 2 non-goals stated explicitly
+- [ ] At least 3 edge cases or failure scenarios with acceptance criteria
 - [ ] Zero NFRs use adjectives without numbers
 - [ ] Zero solutions disguised as requirements — every requirement states WHAT, not HOW
-- [ ] Every assumption is labeled as an assumption, not stated as a fact
+- [ ] Every assumption labeled as an assumption, not stated as fact
 - [ ] Every open question has an owner and a deadline
 - [ ] User has said "yes, publish it"
 
 ## Output
 
-- **Artifact:** `/tmp/prd-{name}/prd-draft.md` + GitHub issue
-- **Upstream:** `prd-discover` → `prd-interview` → **this skill**
-- **Downstream:** `prd-to-issues` (breaks the PRD into implementation issues)
+- **Artifact:** `/tmp/prd-{name}/prd-draft.md` + optional GitHub issue
+- **Pipeline:** `prd-discover` → `prd-interview` → **this skill** → `prd-to-issues`
