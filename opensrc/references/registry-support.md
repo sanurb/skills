@@ -1,105 +1,64 @@
 # Registry Support
 
-## Supported Package Registries
+## Package Registries
 
-### npm (Node.js)
+### npm
+- Prefix: none or `npm:`
+- Source of truth for metadata: `https://registry.npmjs.org/<package>`
+- Repo extraction: `repository.url` and monorepo `repository.directory`
+- Special case: fully supports scoped packages such as `@babel/core`
 
-**Prefixes:** `npm:` or no prefix (default)
+### PyPI
+- Prefixes: `pypi:`, `pip:`, `python:`
+- Metadata endpoint: `https://pypi.org/pypi/<package>/json`
+- Version forms: `pypi:requests==2.31.0` and `pypi:requests@2.31.0`
+- Repo extraction: `project_urls.Source`, `project_urls.Repository`, then GitHub or GitLab homepages
 
-**Version Detection:** Checks in order:
-1. `node_modules/{pkg}/package.json`
-2. `package-lock.json`
-3. `pnpm-lock.yaml`
-4. `yarn.lock`
-5. `package.json` (strips range prefixes like `^`, `~`)
+### crates.io
+- Prefixes: `crates:`, `cargo:`, `rust:`
+- Metadata endpoint: `https://crates.io/api/v1/crates/<crate>`
+- Version form: `crates:serde@1.0.217`
+- Repo extraction: `crate.repository`
 
-**Scoped Packages:** Fully supported (e.g., `@babel/core`, `@types/node`)
-
-**API Endpoint:** `https://registry.npmjs.org/{package}`
-
-**Repository Resolution:** Extracts from `repository.url` field in package metadata
-
-### PyPI (Python)
-
-**Prefixes:** `pypi:`, `pip:`, or `python:`
-
-**Version Syntax:**
-- `pypi:requests==2.31.0` (pip style)
-- `pypi:requests@2.31.0` (alternative)
-
-**API Endpoint:** `https://pypi.org/pypi/{package}/json`
-
-**Repository Resolution:** Extracts from project URLs:
-- `project_urls.Source`
-- `project_urls.Repository`
-- `project_urls.Homepage` (if GitHub/GitLab)
-
-### crates.io (Rust)
-
-**Prefixes:** `crates:`, `cargo:`, or `rust:`
-
-**Version Syntax:** `crates:serde@1.0.0`
-
-**API Endpoint:** `https://crates.io/api/v1/crates/{crate}`
-
-**Repository Resolution:** Extracts from `crate.repository` field
-
-## Repository Hosts
+## Repo Hosts
 
 ### GitHub
-
-**Formats:**
-- `owner/repo`
-- `github:owner/repo`
-- `https://github.com/owner/repo`
-
-**API:** `https://api.github.com/repos/{owner}/{repo}`
-
-**Rate Limiting:** 60 requests/hour without auth
-
-**Default Branch:** Fetched from API response
+- Formats: `owner/repo`, `github:owner/repo`, full HTTPS URL
+- API: `https://api.github.com/repos/<owner>/<repo>`
+- Notes: resolves default branch from provider metadata
 
 ### GitLab
-
-**Formats:**
-- `gitlab:owner/repo`
-- `https://gitlab.com/owner/repo`
-
-**API:** `https://gitlab.com/api/v4/projects/{encoded_path}`
-
-**Note:** Project path must be URL-encoded
+- Formats: `gitlab:owner/repo`, full HTTPS URL
+- API: `https://gitlab.com/api/v4/projects/<encoded-path>`
+- Notes: path must be URL encoded before lookup
 
 ### Bitbucket
+- Formats: `bitbucket:owner/repo`, full HTTPS URL
+- Notes: parsing works; provider-specific API resolution is limited
 
-**Formats:**
-- `bitbucket:owner/repo`
-- `https://bitbucket.org/owner/repo`
+## Ref Syntax
 
-**Note:** Parsing supported, but no API resolution. Assumes `main` as default branch.
-
-## Reference Syntax
-
-Both `@ref` and `#ref` are supported for specifying branches, tags, or commits:
+Use either syntax for direct repos:
 
 ```bash
-opensrc vercel/ai@v1.0.0      # Tag
-opensrc vercel/ai@main        # Branch
-opensrc vercel/ai#feature     # Branch (alternative)
-opensrc vercel/ai@abc123      # Commit SHA
+opensrc path vercel/ai@v5.0.0
+opensrc path vercel/ai@main
+opensrc path vercel/ai#feature/cache-fix
+opensrc path vercel/ai@abc1234
 ```
 
-## Tag Resolution Order
-
-When cloning at a specific version:
-
-1. Try `v{version}` tag (e.g., `v3.22.0`)
-2. Try `{version}` tag (e.g., `3.22.0`)
-3. Fall back to default branch with warning
+- `@tag` selects a tag.
+- `@main` or `#main` selects a branch.
+- `@<sha>` selects a commit.
 
 ## URL Normalization
+- Remove `git+` prefixes.
+- Remove `.git` suffixes.
+- Convert SSH URLs to HTTPS when host parsing allows it.
+- Normalize equivalent URLs onto the same cache key.
 
-Registry URLs are normalized before use:
-- Remove `git+` prefix
-- Remove `.git` suffix
-- Convert SSH URLs to HTTPS
-- Handle various GitHub URL formats
+## Failure Cases
+- Package metadata exposes no repository URL.
+- Repo host is unsupported.
+- Provider metadata is unavailable and the spec lacks enough information to continue.
+- Requested ref does not exist and no fallback branch resolution succeeds.

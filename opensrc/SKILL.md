@@ -1,115 +1,101 @@
 ---
 name: opensrc
-description: Fetch source code for npm, PyPI, or crates.io packages and GitHub/GitLab repos to provide AI agents with implementation context beyond types and docs. Use when needing to understand how a library works internally, debug dependency issues, or explore package implementations.
+description: Fetch dependency source code to give AI agents deeper implementation context. Use for library internals, dependency debugging, and real implementation review. Skip simple API docs; route multi-repo work to librarian or context7.
+allowed-tools: Bash(opensrc:*)
 ---
 
-# opensrc
+# Source Code Fetching with opensrc
 
-CLI tool to fetch source code for packages/repos, giving AI coding agents deeper implementation context.
+Fetch cached dependency source fast, then inspect real implementation files instead of guessing from types or docs.
 
-## When to Use
+## Non-Negotiables
 
-- Need to understand how a library/package works internally (not just its interface)
-- Debugging issues where types alone are insufficient
-- Exploring implementation patterns in dependencies
-- Agent needs to reference actual source code of a package
+- Run `opensrc path <spec>` before reading dependency files. Do not guess cache locations.
+- Quote `"$(opensrc path ...)"` in shell composition so spaces and multiple outputs stay correct.
+- Route public API and docs questions to context7. Route multi-repo or cross-package discovery to librarian.
+- State behavior only after inspecting fetched source or explicitly note that the dependency could not be resolved.
 
-## Quick Start
+## Output Format
 
-```bash
-# Install globally or use npx
-npm install -g opensrc
+Return these facts in the final answer:
 
-# Fetch npm package (auto-detects installed version from lockfile)
-npx opensrc zod
+- resolved package or repo spec
+- absolute source path or paths returned by `opensrc path`
+- files or directories inspected
+- source-grounded conclusion, including uncertainty when the code inspected is incomplete
 
-# Fetch from other registries
-npx opensrc pypi:requests       # Python/PyPI
-npx opensrc crates:serde        # Rust/crates.io
 
-# Fetch GitHub repo directly
-npx opensrc vercel/ai           # owner/repo shorthand
-npx opensrc github:owner/repo   # explicit prefix
-npx opensrc https://github.com/colinhacks/zod  # full URL
-
-# Fetch specific version/ref
-npx opensrc zod@3.22.0
-npx opensrc owner/repo@v1.0.0
-```
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `opensrc <packages...>` | Fetch source for packages/repos |
-| `opensrc list` | List all fetched sources |
-| `opensrc remove <name>` | Remove specific source |
-| `opensrc clean` | Remove all sources |
-
-## Output Structure
-
-After fetching, sources stored in `opensrc/` directory:
-
-```
-opensrc/
-├── settings.json           # User preferences
-├── sources.json            # Index of fetched packages/repos
-└── repos/
-    └── github.com/
-        └── owner/
-            └── repo/       # Cloned source code
-```
-
-## File Modifications
-
-On first run, opensrc prompts to modify:
-- `.gitignore` - adds `opensrc/` to ignore list
-- `tsconfig.json` - excludes `opensrc/` from compilation
-- `AGENTS.md` - adds section pointing agents to source code
-
-Use `--modify` or `--modify=false` to skip prompt.
-
-## Key Behaviors
-
-1. **Version Detection** - For npm, auto-detects installed version from `node_modules`, `package-lock.json`, `pnpm-lock.yaml`, or `yarn.lock`
-2. **Repository Resolution** - Resolves package to its git repo via registry API, clones at matching tag
-3. **Monorepo Support** - Handles packages in monorepos via `repository.directory` field
-4. **Shallow Clone** - Uses `--depth 1` for efficient cloning, removes `.git` after clone
-5. **Tag Fallback** - Tries `v{version}`, `{version}`, then default branch if tag not found
-
-## Common Workflows
-
-### Fetching a Package
+## Core Pattern
 
 ```bash
-# Agent needs to understand zod's implementation
-npx opensrc zod
-# → Detects version from lockfile
-# → Finds repo URL from npm registry
-# → Clones at matching git tag
-# → Source available at opensrc/repos/github.com/colinhacks/zod/
+rg 'discriminatedUnion' "$(opensrc path zod --cwd /repo)"
+find "$(opensrc path @tanstack/react-query --cwd /repo)" -maxdepth 2 -type f
+cat "$(opensrc path vercel/ai)/packages/ai/core/generate-text.ts"
 ```
 
-### Updating Sources
+Use `opensrc path ...` as the composition primitive. It prints the absolute cache path to stdout and sends progress to stderr, so shell composition stays clean.
+
+One spec returns one absolute path. Multiple specs return one absolute path per output line.
+
+Read files, search directories, and join shell pipelines from that path instead of teaching the agent a separate cache layout.
+
+When `opensrc-mcp` is available as an MCP server, prefer it for batch operations and structural search. The agent sends JS to the server, the server reads cached source locally, and source trees stay out of agent context. Read [references/mcp-usage.md](references/mcp-usage.md) for the MCP pattern.
+
+## Fetching Source Code
 
 ```bash
-# Re-run same command to update to currently installed version
-npx opensrc zod
-# → Checks if version changed
-# → Re-clones if needed
+opensrc path zod --cwd /repo
+opensrc path zod@4.3.6
+opensrc path pypi:requests@2.31.0
+opensrc path crates:serde@1.0.217
+opensrc path vercel/ai
+opensrc path vercel/ai#main
+opensrc path react @tanstack/react-query pypi:fastapi
 ```
 
-### Multiple Sources
+Use `@version` to pin package versions. Use `@tag`, `@commit`, or `#branch` for direct repo refs.
+
+### Version Resolution
+
+Run `opensrc path <package> --cwd <project>` to resolve the installed version from the target project. npm resolution uses the target directory, not the current shell directory.
+
+Resolution order:
+1. `node_modules/<pkg>/package.json`
+2. `package-lock.json`
+3. `pnpm-lock.yaml`
+4. `yarn.lock`
+5. `package.json`
+
+## Managing the Cache
+
+Cache lives in `~/.opensrc/`. Override it with `OPENSRC_HOME`.
 
 ```bash
-# Fetch multiple at once
-npx opensrc react react-dom next
-npx opensrc zod pypi:pydantic vercel/ai
+opensrc list
+opensrc list --json
+opensrc remove zod vercel/ai
+opensrc clean --packages
+opensrc clean --repos
+OPENSRC_HOME=/tmp/opensrc opensrc path zod --cwd /repo
 ```
 
-## References
+## When to Fetch Source
 
-For detailed information:
-- [CLI Usage & Options](references/cli-usage.md) - Full command reference
-- [Architecture](references/architecture.md) - Code structure and extension
-- [Registry Support](references/registry-support.md) - npm, PyPI, crates.io details
+Fetch source when:
+- Inspect internal behavior, control flow, cache invalidation, parser logic, or hidden defaults.
+- Debug dependency behavior that docs, types, stack traces, or generated API surfaces do not explain.
+- Verify implementation details before claiming how a package or repo works.
+- Read real code paths, file layout, and module boundaries inside a dependency.
+- For batch exploration of multiple packages or structural code search, use opensrc-mcp if available. Read [references/mcp-usage.md](references/mcp-usage.md).
+
+Do not fetch source when:
+- Docs answer the question directly. Use context7 for standard API questions.
+- The task needs cross-package discovery, multi-repo comparison, or routing across many candidates. Use librarian.
+- The task is basic usage, installation, configuration, or examples from a public API surface.
+
+## Reference
+
+Read [references/cli-usage.md](references/cli-usage.md) for command reference, flags, JSON output, and environment variables.
+Read [references/mcp-usage.md](references/mcp-usage.md) for MCP execution, server-side source access, and naming behavior.
+Read [references/architecture.md](references/architecture.md) for cache layout, registry resolution, and failure behavior.
+Read [references/registry-support.md](references/registry-support.md) for registry prefixes, repo refs, and host-specific quirks.
