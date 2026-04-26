@@ -1,0 +1,39 @@
+domain-model/references/context-format.md
+  907d862f6b9518a3 1-61
+domain-model/references/context-map-format.md
+  907d862f6b9518a3 1-33
+zoom-out/SKILL.md
+  h_ef3da9565217ba 1-7
+domain-model/references/adr-format.md
+  907d862f6b9518a3 1-47
+domain-model/evals.md
+  907d862f6b9518a3 1-76
+domain-model/SKILL.md
+  h_ef3da9565217ba 1-2,4-6,8,10,12,14,16,18,25,55-57,59-61,63-66,75-76,78,84,86
+  907d862f6b9518a3 3,7,9,11,13,15,17,19-24,26-54,58,62,67-74,77,79-83,85,87-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "0ff1b888ff17b7ad5c440294257ac74a81f49b72",
+  "prompts": {
+    "907d862f6b9518a3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b7c6e622-3681-4277-89dd-85b8abca5960",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Santiago U",
+      "messages": [],
+      "total_additions": 305,
+      "total_deletions": 78,
+      "accepted_lines": 281,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_ef3da9565217ba": {
+      "author": "Santiago U"
+    }
+  }
+}
