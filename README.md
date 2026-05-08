@@ -225,10 +225,6 @@ Write, test, and fix code.
   ```bash
   npx skills@latest add sanurb/skills/ast-grep
   ```
-- **[qa](qa/)** — Interactive QA session — user describes bugs conversationally, agent files GitHub issues with domain language and durable reproduction steps.
-  ```bash
-  npx skills@latest add sanurb/skills/qa
-  ```
 
 ## Code Navigation & Search
 
@@ -276,6 +272,10 @@ Find code efficiently.
 
 ## Terminal & Tooling
 
+- **[herdr](herdr/)** — Control herdr (a terminal-native agent multiplexer) from inside it. Manage workspaces and tabs, split panes, spawn sibling agents, read pane output, and block until a specific line appears or another agent finishes.
+  ```bash
+  npx skills@latest add sanurb/skills/herdr
+  ```
 - **[tmux](tmux/)** — Remote control tmux sessions for interactive CLIs by sending keystrokes and scraping pane output.
   ```bash
   npx skills@latest add sanurb/skills/tmux
