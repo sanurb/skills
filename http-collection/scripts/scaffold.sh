@@ -103,17 +103,32 @@ module.exports = {
 };
 EOF
 
-write_if_missing "$HTTP_DIR/ARCHITECTURE.md" <<'EOF'
-# HTTP Collection Architecture
+write_if_missing "$HTTP_DIR/README.md" <<'EOF'
+# HTTP Collection
 
-## Structural Rules
+Bruno / OpenCollection requests for this API, organized by domain.
 
-1. Top-level folders represent business capabilities, never HTTP verbs.
-2. `opencollection.yml` is the collection root; request and folder files use `.yml`.
-3. `environments/*.json` store non-secret variables.
-4. `.env` stores secrets and stays gitignored.
-5. `lib.js` holds shared assertions and reusable test helpers.
-6. Every request has tags and `docs:`.
+## How it's laid out
+
+Each top-level folder is a business capability — a bounded context — not an
+HTTP verb or URL shape. `opencollection.yml` is the root; everything else is
+browsable from there. The folder tree is the map, so this README does not
+repeat it.
+
+## How to run it
+
+1. Copy `.env.sample` to `.env` and fill in the secrets.
+2. Open `etc/http/` in Bruno, or run it headless with the Bruno CLI.
+3. Select an environment: `local`, `staging`, or `production`.
+
+## How to extend it without creating drift
+
+- Put a request in the folder for its capability; add a new domain folder only
+  for a genuinely new capability.
+- Reuse the assertions in `lib.js` instead of copying response checks.
+- Let a request inherit collection auth unless it truly differs.
+- Give every request tags and a `docs:` block. That block is the request's
+  contract, and it lives next to the request — so it can't drift away from it.
 EOF
 
 write_if_missing "$ENV_DIR/local.json" <<'EOF'
@@ -295,15 +310,16 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        const { assertProblemDetails, assertJsonContentType } = require("../lib.js");
+        // require() resolves from the collection root, so lib.js is "./lib.js".
+        const { assertProblemDetails, assertJsonContentType } = require("./lib.js");
 
         test("response is JSON", function() {
-          assertJsonContentType(res.headers);
+          assertJsonContentType(res.getHeaders());
         });
 
-        if (res.status >= 400) {
+        if (res.getStatus() >= 400) {
           test("error follows problem details", function() {
-            assertProblemDetails(res.body);
+            assertProblemDetails(res.getBody());
           });
         }
 

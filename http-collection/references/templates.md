@@ -157,10 +157,11 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        const { assertProblemDetails, assertJsonContentType } = require("../lib.js");
-        test("response is JSON", function() { assertJsonContentType(res.headers); });
-        if (res.status >= 400) {
-          test("error follows problem details", function() { assertProblemDetails(res.body); });
+        // require() resolves from the collection root, so lib.js is "./lib.js".
+        const { assertProblemDetails, assertJsonContentType } = require("./lib.js");
+        test("response is JSON", function() { assertJsonContentType(res.getHeaders()); });
+        if (res.getStatus() >= 400) {
+          test("error follows problem details", function() { assertProblemDetails(res.getBody()); });
         }
 
 settings:

@@ -14,7 +14,7 @@ Reference spec: https://spec.opencollection.com/ (`v1.0.0`).
 - Create a new `etc/http/` collection
 - Repair a partial or inconsistent `etc/http/` tree
 - Migrate Bruno/Postman requests into one OpenCollection structure
-- Add missing environments, shared helpers, or architecture rules to an existing collection
+- Add missing environments, shared helpers, or a collection README to an existing collection
 
 ## Do Not Use For
 
@@ -38,7 +38,7 @@ Reference spec: https://spec.opencollection.com/ (`v1.0.0`).
 
 1. Read [the minimum schema summary](references/spec-summary.md).
 2. Read [the starter templates](references/templates.md).
-3. Read [the architecture contract template](references/architecture-template.md).
+3. Read [the collection README template](references/readme-template.md).
 4. Detect the mode.
 5. Run `scripts/scaffold.sh <project-root>`.
 6. Replace `domain-context/` with real bounded-context folder names from the repo.
@@ -54,7 +54,7 @@ This skill produces one artifact. Return exactly this markdown artifact after ap
 ```markdown
 ## HTTP Collection Plan
 - Mode: {greenfield | brownfield}
-- Read: `references/spec-summary.md`, `references/templates.md`, `references/architecture-template.md`, `scripts/scaffold.sh`
+- Read: `references/spec-summary.md`, `references/templates.md`, `references/readme-template.md`, `scripts/scaffold.sh`
 - Ran: `scripts/scaffold.sh <project-root>`
 - Created: {files}
 - Updated: {files}
@@ -75,7 +75,7 @@ This skill produces one artifact. Return exactly this markdown artifact after ap
 |------|------|
 | Understand required schema | [references/spec-summary.md](references/spec-summary.md) |
 | Copy or adapt starter files | [references/templates.md](references/templates.md) |
-| Write or refresh `ARCHITECTURE.md` | [references/architecture-template.md](references/architecture-template.md) |
+| Write or refresh the collection `README.md` | [references/readme-template.md](references/readme-template.md) |
 | Generate starter tree | `scripts/scaffold.sh` |
 
 ## Integrated Examples
@@ -97,7 +97,7 @@ etc/http/
 ├── lib.js
 ├── .env.sample
 ├── .gitignore
-├── ARCHITECTURE.md
+├── README.md
 ├── environments/
 │   ├── local.json
 │   ├── staging.json
@@ -134,7 +134,7 @@ etc/http/
 ├── lib.js
 ├── .env.sample
 ├── .gitignore
-├── ARCHITECTURE.md
+├── README.md
 ├── environments/
 │   ├── local.json
 │   ├── staging.json

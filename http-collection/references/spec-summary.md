@@ -137,6 +137,18 @@ runtime:
 
 Put reusable JS helpers in `etc/http/lib.js` and import them from request test scripts.
 
+Two Bruno scripting rules that prevent common failures:
+
+- `require()` resolves **relative to the collection root**, not the request
+  file. From any request, the root helper is `require("./lib.js")`. A `../`
+  path escapes the collection and fails with `Access to files outside of the
+  collectionPath is not allowed`. (In-collection requires also work in Safe
+  Mode; reaching outside the collection needs Developer Mode.)
+- In test scripts use the documented accessors — `res.getStatus()`,
+  `res.getBody()`, `res.getHeaders()`, `res.getHeader(name)` — not bare
+  properties. Bare `res.status` belongs only in the `runtime.assertions`
+  expression DSL, not in JS.
+
 ## What the Spec Does NOT Decide
 
 The spec gives the file schema. It does **not** decide:
@@ -146,4 +158,7 @@ The spec gives the file schema. It does **not** decide:
 - your secret naming scheme
 - your contract assertions
 
-That is repo architecture. Keep it explicit in `ARCHITECTURE.md`.
+That is repo architecture. It lives in the collection's structure — folder
+names, request tags, `docs:` blocks, and `.env.sample` — with a short
+`README.md` for orientation. Keep it out of a separate rules document that
+would drift from the files.
